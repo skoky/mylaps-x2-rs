@@ -1,0 +1,20 @@
+app-build:
+  build: .
+  dockerfile: Dockerfile-compile
+  working_dir: /opt/prj
+  volumes:
+    - .:/opt/prj
+  command: bash ./compile.sh
+
+x2:
+  build: .
+  working_dir: /opt/
+  environment:
+    - LD_LIBRARY_PATH=/opt/libs
+  devices:
+    - "/dev/mem:/dev/mem"
+  privileged: true
+  volumes:
+    - ./sdk-master/lib/linux/x86-64/libmylapssdk.so:/opt/libs/libmylapssdk.so
+    - ./target/debug:/opt/x2
+  entrypoint: /opt/x2/mylaps-x2-rs
