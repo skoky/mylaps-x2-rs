@@ -6,7 +6,13 @@ use std::sync::mpsc;
 
 use clap::{App, Arg};
 
-use crate::mylapsx2::{availableappliance_t, CONNECTIONSTATE__csAuthenticationFailed, MDP_NOTIFY_TYPE, mdp_sdk_alloc, mdp_sdk_appliance_verify, mdp_sdk_handle_dummystruct, mdp_sdk_handle_t, mdp_sdk_messagequeue_process, mdp_sdk_notify_verify_appliance, mta_connect, mta_handle_alloc, mta_handle_t, mta_notify_connect, mta_notify_connectionstate, mta_notify_systemsetup, systemsetup_t};
+use crate::mylapsx2::availableappliance_t;
+use crate::mylapsx2::mdp_sdk_alloc;
+use crate::mylapsx2::mdp_sdk_appliance_verify;
+use crate::mylapsx2::mdp_sdk_handle_dummystruct;
+use crate::mylapsx2::mdp_sdk_handle_t;
+use crate::mylapsx2::mdp_sdk_messagequeue_process;
+use crate::mylapsx2::mdp_sdk_notify_verify_appliance;
 
 mod mylapsx2;
 
@@ -44,13 +50,8 @@ fn main() {
 
     println!("Connecting {}...", hostname_param);
     let now = time::Instant::now();
-    loop {
+    while !state.should_stop {
         wait_for_message(sdk_handle);
-
-        let data: &mut Context = unsafe { &mut *(context as *mut Context) };
-        if data.should_stop {
-            break;
-        }
 
         if now.elapsed() >= timeout {
             println!("Timeout waiting for verify");
@@ -64,21 +65,19 @@ unsafe extern "C" fn notify_verify(handle: mdp_sdk_handle_t,
                                    is_verified: bool,
                                    appliance: *const availableappliance_t,
                                    context: *mut ::std::os::raw::c_void, ) {
-    if hostname.is_null() {
-        panic!("Hostname is null in notify_verify handler")
-    }
+    assert!(!hostname.is_null(), "Hostname is null in notify_verify handler");
+
     let h = CStr::from_ptr(hostname);
     println!("Verification result {} -> {}", h.to_str().unwrap(), is_verified);
+
     if is_verified && !appliance.is_null() {
         let appl = (*appliance);
         println!("Appliance build {}", appl.buildnumber);
     }
-    if !context.is_null() {
-        let data: &mut Context = unsafe { &mut *(context as *mut Context) };
-        data.should_stop = true;
-    } else {
-        panic!("Context is null in notify_verify handler")
-    }
+
+    assert!(!context.is_null(), "Context is null in notify_verify handler");
+    let data = unsafe { &mut *(context as *mut Context) };
+    data.should_stop = true;
 }
 
 fn wait_for_message(sdk_handle: mdp_sdk_handle_t) {
@@ -93,7 +92,7 @@ fn verify_appliance(sdk_handle: mdp_sdk_handle_t, hostname_param: &str) {
     match CString::new(hostname_param) {
         Ok(hostname) => {
             match unsafe { mdp_sdk_appliance_verify(sdk_handle, hostname.as_ptr()) } {
-                false => panic!("Can't create SDK handle"),
+                false => panic!("verify appliance failed"),
                 true => {}
             }
         }
@@ -104,9 +103,6 @@ fn verify_appliance(sdk_handle: mdp_sdk_handle_t, hostname_param: &str) {
 fn sdk_handle_safe(context: *mut c_void, app_name: CString) -> *mut mdp_sdk_handle_dummystruct {
     let sdk_handle = unsafe { mdp_sdk_alloc(app_name.as_ptr(), context) };
 
-    if sdk_handle.is_null() {
-        panic!("Unable to get sdk handle")
-    }
+    assert!(!sdk_handle.is_null(), "Unable to get sdk handle");
     return sdk_handle;
 }
-
