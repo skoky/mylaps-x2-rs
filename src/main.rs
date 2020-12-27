@@ -10,11 +10,14 @@ use crate::mylapsx2::{availableappliance_t, CONNECTIONSTATE__csAuthenticationFai
 
 mod mylapsx2;
 
-static mut STOP: bool = false; // FIXME convert to non-static handle
+struct Context {
+    should_stop: bool
+}
 
 fn main() {
+    let mut state = Context { should_stop: false };
+    let context: *mut c_void = &mut state as *mut _ as *mut c_void;
 
-    let mut context = 0 as *mut c_void;
     let timeout = time::Duration::from_secs(10);
     let app_name = CString::new("mylpaps-x2-rs").unwrap();
 
@@ -41,8 +44,14 @@ fn main() {
 
     println!("Connecting {}...", hostname_param);
     let now = time::Instant::now();
-    while !unsafe { STOP } {
+    loop {
         wait_for_message(sdk_handle);
+
+        let data: &mut Context = unsafe { &mut *(context as *mut Context) };
+        if data.should_stop {
+            break;
+        }
+
         if now.elapsed() >= timeout {
             println!("Timeout waiting for verify");
             exit(1);
@@ -55,13 +64,21 @@ unsafe extern "C" fn notify_verify(handle: mdp_sdk_handle_t,
                                    is_verified: bool,
                                    appliance: *const availableappliance_t,
                                    context: *mut ::std::os::raw::c_void, ) {
+    if hostname.is_null() {
+        panic!("Hostname is null in notify_verify handler")
+    }
     let h = CStr::from_ptr(hostname);
     println!("Verification result {} -> {}", h.to_str().unwrap(), is_verified);
-    if is_verified {
+    if is_verified && !appliance.is_null() {
         let appl = (*appliance);
         println!("Appliance build {}", appl.buildnumber);
     }
-    STOP = true;
+    if !context.is_null() {
+        let data: &mut Context = unsafe { &mut *(context as *mut Context) };
+        data.should_stop = true;
+    } else {
+        panic!("Context is null in notify_verify handler")
+    }
 }
 
 fn wait_for_message(sdk_handle: mdp_sdk_handle_t) {
@@ -88,7 +105,7 @@ fn sdk_handle_safe(context: *mut c_void, app_name: CString) -> *mut mdp_sdk_hand
     let sdk_handle = unsafe { mdp_sdk_alloc(app_name.as_ptr(), context) };
 
     if sdk_handle.is_null() {
-        panic!("sss")
+        panic!("Unable to get sdk handle")
     }
     return sdk_handle;
 }
