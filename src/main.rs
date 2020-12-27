@@ -6,11 +6,11 @@ use std::sync::mpsc;
 
 use clap::{App, Arg};
 
-use crate::mylapsx2::{availableappliance_t, CONNECTIONSTATE__csAuthenticationFailed, MDP_NOTIFY_TYPE, mdp_sdk_alloc, mdp_sdk_appliance_verify, mdp_sdk_handle_t, mdp_sdk_messagequeue_process, mdp_sdk_notify_verify_appliance, mta_connect, mta_handle_alloc, mta_handle_t, mta_notify_connect, mta_notify_connectionstate, mta_notify_systemsetup, systemsetup_t};
+use crate::mylapsx2::{availableappliance_t, CONNECTIONSTATE__csAuthenticationFailed, MDP_NOTIFY_TYPE, mdp_sdk_alloc, mdp_sdk_appliance_verify, mdp_sdk_handle_dummystruct, mdp_sdk_handle_t, mdp_sdk_messagequeue_process, mdp_sdk_notify_verify_appliance, mta_connect, mta_handle_alloc, mta_handle_t, mta_notify_connect, mta_notify_connectionstate, mta_notify_systemsetup, systemsetup_t};
 
 mod mylapsx2;
 
-static mut stop: bool = false;
+static mut STOP: bool = false; // FIXME convert to non-static handle
 
 fn main() {
     let mut context = 0 as *mut c_void;
@@ -34,38 +34,49 @@ fn main() {
 
     let hostname = CString::new(hostname_param).unwrap();
 
-    unsafe {
-        let sdk_handle = mdp_sdk_alloc(app_name.as_ptr(), context);
+    let sdk_handle = sdk_handle_safe(context, app_name);
 
-        mdp_sdk_notify_verify_appliance(sdk_handle, Some(notify_verify));
+    setup_notifier(sdk_handle);
 
-        match mdp_sdk_appliance_verify(sdk_handle, hostname.as_ptr()) {
-            false => panic!("Can't create SDK handle"),
-            true => {}
-        }
-        println!("Connecting {}...", hostname_param);
-        let now = time::Instant::now();
-        while !stop {
-            mdp_sdk_messagequeue_process(sdk_handle, true, 1_000);
-            if now.elapsed() >= timeout {
-                println!("Timeout waiting for verify");
-                exit(1);
-            }
+    match unsafe { mdp_sdk_appliance_verify(sdk_handle, hostname.as_ptr()) } {
+        false => panic!("Can't create SDK handle"),
+        true => {}
+    }
+    println!("Connecting {}...", hostname_param);
+    let now = time::Instant::now();
+    while !unsafe { STOP } {
+        unsafe { mdp_sdk_messagequeue_process(sdk_handle, true, 1_000); }
+        if now.elapsed() >= timeout {
+            println!("Timeout waiting for verify");
+            exit(1);
         }
     }
+}
 
-    unsafe extern "C" fn notify_verify(handle: mdp_sdk_handle_t,
-                                       hostname: *const ::std::os::raw::c_char,
-                                       is_verified: bool,
-                                       appliance: *const availableappliance_t,
+unsafe extern "C" fn notify_verify(handle: mdp_sdk_handle_t,
+                                   hostname: *const ::std::os::raw::c_char,
+                                   is_verified: bool,
+                                   appliance: *const availableappliance_t,
                                        context: *mut ::std::os::raw::c_void, ) {
-        let h = CStr::from_ptr(hostname);
-        println!("Verification result {} -> {}", h.to_str().unwrap(), is_verified);
-        if is_verified {
-            let appl = (*appliance);
-            println!("Appliance build {}", appl.buildnumber);
-        }
-        stop = true;
+    let h = CStr::from_ptr(hostname);
+    println!("Verification result {} -> {}", h.to_str().unwrap(), is_verified);
+    if is_verified {
+        let appl = (*appliance);
+        println!("Appliance build {}", appl.buildnumber);
     }
+    STOP = true;
+}
+
+fn setup_notifier(sdk_handle: mdp_sdk_handle_t) {
+    unsafe { mdp_sdk_notify_verify_appliance(sdk_handle, Some(notify_verify)); }
+}
+
+fn sdk_handle_safe(context: *mut c_void, app_name: CString) -> *mut mdp_sdk_handle_dummystruct {
+    let sdk_handle = unsafe { mdp_sdk_alloc(app_name.as_ptr(), context) };
+
+    if sdk_handle.is_null() {
+        panic!("sss")
+    }
+    return sdk_handle;
 }
 
