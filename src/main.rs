@@ -22,7 +22,11 @@ struct Context {
 }
 
 const APP_NAME: &str = "mylaps-x2-rs";
+const VERSION: &str = "1.0.0";
+const AUTHOR: &str = "skokys@gmail.com";
+
 const TIMEOUT: Duration = time::Duration::from_secs(10);
+const HOSTNAME_PARAM: &str = "hostname";
 
 fn main() {
     let mut state = Context { should_stop: false };
@@ -30,16 +34,16 @@ fn main() {
     let app_name = CString::new(APP_NAME).unwrap();
 
     let matches = App::new(APP_NAME)
-        .version("1.0.0")
-        .author("skokys@gmail.com")
-        .arg(Arg::with_name("hostname")
+        .version(VERSION)
+        .author(AUTHOR)
+        .arg(Arg::with_name(HOSTNAME_PARAM)
             .index(1)
             .required(true)
             .help("MyLaps X2 server hostname or ip address")
         )
         .get_matches();
 
-    let hostname_param = match matches.value_of("hostname") {
+    let hostname_param = match matches.value_of(HOSTNAME_PARAM) {
         Some(h) if h.len() > 0 => h,
         Some(_) | None => panic!("MyLaps X2 server name missing"),
     };
@@ -62,7 +66,7 @@ fn main() {
     }
 }
 
-unsafe extern "C" fn notify_verify(handle: mdp_sdk_handle_t,
+unsafe extern "C" fn notify_verify(_handle: mdp_sdk_handle_t,
                                    hostname: *const ::std::os::raw::c_char,
                                    is_verified: bool,
                                    appliance: *const availableappliance_t,
