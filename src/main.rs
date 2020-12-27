@@ -17,7 +17,7 @@ use crate::mylapsx2::mdp_sdk_notify_verify_appliance;
 
 mod mylapsx2;
 
-struct Context {
+struct State {
     should_stop: bool
 }
 
@@ -28,9 +28,14 @@ const AUTHOR: &str = "skokys@gmail.com";
 const TIMEOUT: Duration = time::Duration::from_secs(10);
 const HOSTNAME_PARAM: &str = "hostname";
 
+#[cfg(debug_assertions)]
+macro_rules! toVoid { ($e:expr) => (&mut $e as *mut _ as *mut c_void)  }
+
+#[cfg(debug_assertions)]
+macro_rules! fromVoid { ($e:expr) => {unsafe { &mut *($e as *mut State) } } }
+
 fn main() {
-    let mut state = Context { should_stop: false };
-    let context: *mut c_void = &mut state as *mut _ as *mut c_void;
+    let mut state = State { should_stop: false };
     let app_name = CString::new(APP_NAME).unwrap();
 
     let matches = App::new(APP_NAME)
@@ -48,7 +53,7 @@ fn main() {
         Some(_) | None => panic!("MyLaps X2 server name missing"),
     };
 
-    let sdk_handle = sdk_handle_safe(context, app_name);
+    let sdk_handle = sdk_handle_safe(toVoid!(state), app_name);
 
     setup_notifier(sdk_handle);
 
@@ -85,7 +90,7 @@ unsafe extern "C" fn notify_verify(_handle: mdp_sdk_handle_t,
     }
 
     assert!(!context.is_null(), "Context is null in notify_verify handler");
-    let data = unsafe { &mut *(context as *mut Context) };
+    let data = fromVoid!(context);
     data.should_stop = true;
 }
 

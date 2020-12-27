@@ -1,7 +1,14 @@
 
-This is a **sample code** showing how to use [MyLaps X2 SDK](https://www.mylaps.com/x2-timing-data-system/x2-sdk)
+This is a **sample code** showing how to use [MyLaps X2 SDK](https://help.mylaps.com/s/article/Where-can-I-find-the-X2-SDK?language=en_US)
 with [Rust language](https://www.rust-lang.org/). The example generates native SDK binder into Rust lang,
 connects to a MyLaps X2 server and validates connection with excellent performance.
+
+Features
+* generating Rust wrapper from C based SDK in `build.rs`
+* command line app verifying hostname X2 sever
+* error handling sample from the SDK; wrapping *unsafe* methods call
+* macro for converting `*void` from / to SDK
+* state management with native API
 
 The [Rust language](https://www.rust-lang.org/) is modern system language suitable for realtime and high-performance
 applications *without garbage collector*.
