@@ -3,6 +3,7 @@ use std::ffi::{c_void, CStr, CString};
 use std::process::exit;
 use std::ptr::null;
 use std::sync::mpsc;
+use std::time::Duration;
 
 use clap::{App, Arg};
 
@@ -20,14 +21,15 @@ struct Context {
     should_stop: bool
 }
 
+const APP_NAME: &str = "mylaps-x2-rs";
+const TIMEOUT: Duration = time::Duration::from_secs(10);
+
 fn main() {
     let mut state = Context { should_stop: false };
     let context: *mut c_void = &mut state as *mut _ as *mut c_void;
+    let app_name = CString::new(APP_NAME).unwrap();
 
-    let timeout = time::Duration::from_secs(10);
-    let app_name = CString::new("mylpaps-x2-rs").unwrap();
-
-    let matches = App::new(app_name.to_str().unwrap())
+    let matches = App::new(APP_NAME)
         .version("1.0.0")
         .author("skokys@gmail.com")
         .arg(Arg::with_name("hostname")
@@ -53,7 +55,7 @@ fn main() {
     while !state.should_stop {
         wait_for_message(sdk_handle);
 
-        if now.elapsed() >= timeout {
+        if now.elapsed() >= TIMEOUT {
             println!("Timeout waiting for verify");
             exit(1);
         }
@@ -68,7 +70,10 @@ unsafe extern "C" fn notify_verify(handle: mdp_sdk_handle_t,
     assert!(!hostname.is_null(), "Hostname is null in notify_verify handler");
 
     let h = CStr::from_ptr(hostname);
-    println!("Verification result {} -> {}", h.to_str().unwrap(), is_verified);
+    match h.to_str() {
+        Ok(hostname_str) => println!("Verification result {} -> {}", hostname_str, is_verified),
+        Err(e) => panic!("Unable to unwrap hostname")
+    }
 
     if is_verified && !appliance.is_null() {
         let appl = (*appliance);
