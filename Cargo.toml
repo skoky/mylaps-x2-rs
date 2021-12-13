@@ -2,12 +2,10 @@
 name = "mylaps-x2-rs"
 version = "0.1.0"
 authors = ["Skoky <skokys@gmail.com>"]
-edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+edition = "2021"
 
 [dependencies]
-clap = "2.33.3"
+clap = "^2.34"
 
 [build-dependencies]
-bindgen = "0.53.1"
+bindgen = "^0.59"
