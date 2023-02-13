@@ -97,14 +97,14 @@ unsafe extern "C" fn notify_verify(_handle: mdp_sdk_handle_t,
         let mut buf = vec![0; BFR_SIZE as usize].into_boxed_slice();
         let data = buf.as_mut_ptr();
 
-        let mac = mdp_mac_to_string(buf.as_mut_ptr(), buf.len() as u64, appl.macaddress, true);
+        let mac = mdp_mac_to_string(buf.as_mut_ptr(), buf.len(), appl.macaddress, true);
         let mac_str = CStr::from_ptr(mac).to_str().unwrap();
-        let build_number = mdp_version_to_string(buf.as_mut_ptr(), buf.len() as u64, appl.buildnumber, true);
+        let build_number = mdp_version_to_string(buf.as_mut_ptr(), buf.len(), appl.buildnumber, true);
         let build_number_str = CStr::from_ptr(build_number).to_str().unwrap();
         let release_name_str = CStr::from_ptr(appl.releasename.as_ptr()).to_str().unwrap();
         let system_setup_str = CStr::from_ptr(appl.systemsetup.as_ptr()).to_str().unwrap();
         let timezone_str = CStr::from_ptr(appl.timezoneid.as_ptr()).to_str().unwrap();
-        let appl_type = match appl.type_ as u32 {
+        let appl_type = match appl.type_ as i32 {
             AVAILABLEAPPLIANCETYPE__APPLIANCE_TYPE_X2_PRO_SERVER => "X2ProServer",
             AVAILABLEAPPLIANCETYPE__APPLIANCE_TYPE_X2_SERVER => "X2Server",
             _ => "Unknown"

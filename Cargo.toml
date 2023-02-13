@@ -8,4 +8,4 @@ edition = "2021"
 clap = "^2.34"
 
 [build-dependencies]
-bindgen = "^0.59"
+bindgen = "^0.63"
