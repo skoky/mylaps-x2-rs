@@ -104,7 +104,7 @@ unsafe extern "C" fn notify_verify(_handle: mdp_sdk_handle_t,
         let release_name_str = CStr::from_ptr(appl.releasename.as_ptr()).to_str().unwrap();
         let system_setup_str = CStr::from_ptr(appl.systemsetup.as_ptr()).to_str().unwrap();
         let timezone_str = CStr::from_ptr(appl.timezoneid.as_ptr()).to_str().unwrap();
-        let appl_type = match appl.type_ as i32 {
+        let appl_type = match appl.type_ as u32 {
             AVAILABLEAPPLIANCETYPE__APPLIANCE_TYPE_X2_PRO_SERVER => "X2ProServer",
             AVAILABLEAPPLIANCETYPE__APPLIANCE_TYPE_X2_SERVER => "X2Server",
             _ => "Unknown"
