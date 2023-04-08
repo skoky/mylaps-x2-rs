@@ -2,13 +2,12 @@ FROM debian:buster
 
 RUN apt-get update \
     && apt-get -y install autoconf cmake make dmidecode \
-    build-essential libc6 g++-multilib gcc curl \
+    build-essential libc6 gcc curl \
     clang clang-format clang-tidy lldb libclang-dev llvm
 
 ENV RUSTUP_INIT_SKIP_PATH_CHECK=1
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH=/root/.cargo/bin:$PATH
-RUN rustc --version
-RUN mkdir -p src/mylapsx2
 
-RUN cargo install bindgen
+RUN rustc --version
+
